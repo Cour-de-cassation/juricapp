@@ -155,6 +155,10 @@ class Database {
           data._id = row[key];
           data.ID_DOCUMENT = row[key];
           break;
+        case 'JDEC_ID':
+          data._id = row[key];
+          data.JDEC_ID = row[key];
+          break;
         case 'rnum':
           // Ignore rnum key (added by offset/limit queries)
           break;

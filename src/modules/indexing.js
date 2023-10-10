@@ -46,13 +46,56 @@ class Indexing {
     }
   }
 
-  async normalizeDecision(decision, previousDecision, ignorePreviousContent, cleanContent) {
+  async normalizeDecision(source, decision, previousDecision, ignorePreviousContent, cleanContent) {
     try {
       return await axios.post(`${process.env.INDEX_URI}/normalizeDecision`, {
+        source: source,
         decision: decision,
         previousDecision: previousDecision,
         ignorePreviousContent: ignorePreviousContent,
         cleanContent: cleanContent,
+      });
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
+  async shouldBeRejected(source, nac, np, publicCheckbox) {
+    try {
+      return await axios.post(`${process.env.INDEX_URI}/shouldBeRejected`, {
+        source: source,
+        nac: nac,
+        np: np,
+        publicCheckbox: publicCheckbox,
+      });
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
+  async isPartiallyPublic(source, nac, np, publicCheckbox) {
+    try {
+      return await axios.post(`${process.env.INDEX_URI}/isPartiallyPublic`, {
+        source: source,
+        nac: nac,
+        np: np,
+        publicCheckbox: publicCheckbox,
+      });
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
+  async shouldBeSentToJudifiltre(source, nac, np, publicCheckbox) {
+    try {
+      return await axios.post(`${process.env.INDEX_URI}/shouldBeSentToJudifiltre`, {
+        source: source,
+        nac: nac,
+        np: np,
+        publicCheckbox: publicCheckbox,
       });
     } catch (e) {
       logger.error(e);
