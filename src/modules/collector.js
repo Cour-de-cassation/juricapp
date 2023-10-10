@@ -320,60 +320,59 @@ class Collector {
       try {
         decision._indexed = null;
         if (updated === true) {
-          // @TODO
           if (decisions[i].diff === null) {
-            await Database.insertOne('sder.rawJurinet', decision);
-            await Indexing.indexDecision('cc', decision, null, 'import in rawJurinet (sync)');
+            await Database.insertOne('sder.rawJurica', decision);
+            await Indexing.indexDecision('ca', decision, null, 'import in rawJurica (sync)');
           } else {
             if (decisions[i].reprocess === true) {
               decision.IND_ANO = 0;
-              decision.XMLA = null;
+              decision.HTMLA = null;
               if (decisions[i].anomaly === true) {
                 await Indexing.updateDecision(
-                  'cc',
+                  'ca',
                   decision,
                   null,
-                  `update in rawJurinet and reprocessed (sync) - original text could have been changed - changelog: ${JSON.stringify(
+                  `update in rawJurica and reprocessed (sync) - original text could have been changed - changelog: ${JSON.stringify(
                     decisions[i].diff,
                   )}`,
                 );
               } else {
                 await Indexing.updateDecision(
-                  'cc',
+                  'ca',
                   decision,
                   null,
-                  `update in rawJurinet and reprocessed (sync) - changelog: ${JSON.stringify(decisions[i].diff)}`,
+                  `update in rawJurica and reprocessed (sync) - changelog: ${JSON.stringify(decisions[i].diff)}`,
                 );
               }
             } else if (decisions[i].anomaly === true) {
               await Indexing.updateDecision(
-                'cc',
+                'ca',
                 decision,
                 null,
-                `update in rawJurinet (sync) - original text could have been changed - changelog: ${JSON.stringify(
+                `update in rawJurica (sync) - original text could have been changed - changelog: ${JSON.stringify(
                   decisions[i].diff,
                 )}`,
               );
             } else {
               await Indexing.updateDecision(
-                'cc',
+                'ca',
                 decision,
                 null,
-                `update in rawJurinet (sync) - changelog: ${JSON.stringify(decisions[i].diff)}`,
+                `update in rawJurica (sync) - changelog: ${JSON.stringify(decisions[i].diff)}`,
               );
             }
-            await Database.replaceOne('sder.rawJurinet', { _id: decision._id }, decision);
+            await Database.replaceOne('sder.rawJurica', { _id: decision._id }, decision);
           }
-          await Indexing.indexAffaire('cc', decision);
+          await Indexing.indexAffaire('ca', decision);
 
-          let normalized = await Database.findOne('sder.decisions', { sourceId: decision._id, sourceName: 'jurinet' });
+          let normalized = await Database.findOne('sder.decisions', { sourceId: decision._id, sourceName: 'jurica' });
           if (normalized === null) {
-            let normDec = await Indexing.normalizeDecision('ca', decision, null, false, true);
+            let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).NACResult;
             const insertResult = await Database.insertOne('sder.decisions', normDec);
             normDec._id = insertResult.insertedId;
             await Indexing.indexDecision('sder', normDec, null, 'import in decisions (sync)');
           } else if (normalized.locked === false && decisions[i].diff !== null) {
-            let normDec = await Indexing.normalizeDecision('ca', decision, normalized, false, true);
+            let normDec = (await Indexing.normalizeDecision('ca', decision, normalized, false, true)).result;
             normDec.dateCreation = new Date().toISOString();
             normDec.zoning = null;
             if (decisions[i].reprocess) {
@@ -401,36 +400,127 @@ class Collector {
             }
           }
         } else {
-          const ShouldBeRejected = await Indexing.shouldBeRejected(
-            'ca',
-            decision.JDEC_CODNAC,
-            decision.JDEC_CODNACPART,
-            decision.JDEC_IND_DEC_PUB,
-          );
-          if (ShouldBeRejected === false) {
-            let partiallyPublic = false;
-            try {
-              partiallyPublic = Indexing.isPartiallyPublic(
-                'ca',
-                decision.JDEC_CODNAC,
-                decision.JDEC_CODNACPART,
-                decision.JDEC_IND_DEC_PUB,
-              );
-            } catch (ignore) {}
-            if (partiallyPublic) {
-              // @TODO
-            }
-            await Database.insertOne('sder.rawJurica', decision);
-            await Indexing.indexDecision('ca', decision, null, 'import in rawJurica');
-            await Indexing.indexAffaire('ca', decision);
-            const ShouldBeSentToJudifiltre = Indexing.shouldBeSentToJudifiltre(
+          const ShouldBeRejected = (
+            await Indexing.shouldBeRejected(
               'ca',
               decision.JDEC_CODNAC,
               decision.JDEC_CODNACPART,
               decision.JDEC_IND_DEC_PUB,
-            );
+            )
+          ).result;
+          if (ShouldBeRejected === false) {
+            let partiallyPublic = false;
+            try {
+              partiallyPublic = (
+                await Indexing.isPartiallyPublic(
+                  'ca',
+                  decision.JDEC_CODNAC,
+                  decision.JDEC_CODNACPART,
+                  decision.JDEC_IND_DEC_PUB,
+                )
+              ).result;
+            } catch (ignore) {}
+            if (partiallyPublic) {
+              let trimmedText;
+              let zoning;
+              try {
+                trimmedText = (await Indexing.cleanContent('ca', decision.JDEC_HTML_SOURCE)).result;
+                trimmedText = trimmedText
+                  .replace(/\*DEB[A-Z]*/gm, '')
+                  .replace(/\*FIN[A-Z]*/gm, '')
+                  .trim();
+              } catch (e) {
+                throw new Error(
+                  `Cannot process partially-public decision ${
+                    decision._id
+                  } because its text is empty or invalid: ${JSON.stringify(
+                    e,
+                    e ? Object.getOwnPropertyNames(e) : null,
+                  )}.`,
+                );
+              }
+              // @TODO XXX
+              try {
+                zoning = await Juritools.GetZones(row._id, 'ca', trimmedText);
+                if (!zoning || zoning.detail) {
+                  throw new Error(
+                    `Cannot process partially-public decision ${row._id} because its zoning failed: ${JSON.stringify(
+                      zoning,
+                      zoning ? Object.getOwnPropertyNames(zoning) : null,
+                    )}.`,
+                  );
+                }
+              } catch (e) {
+                throw new Error(
+                  `Cannot process partially-public decision ${row._id} because its zoning failed: ${JSON.stringify(
+                    e,
+                    e ? Object.getOwnPropertyNames(e) : null,
+                  )}.`,
+                );
+              }
+              if (!zoning.zones) {
+                throw new Error(
+                  `Cannot process partially-public decision ${row._id} because it has no zone: ${JSON.stringify(
+                    zoning,
+                    zoning ? Object.getOwnPropertyNames(zoning) : null,
+                  )}.`,
+                );
+              }
+              if (!zoning.zones.introduction) {
+                throw new Error(
+                  `Cannot process partially-public decision ${row._id} because it has no introduction: ${JSON.stringify(
+                    zoning.zones,
+                    zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
+                  )}.`,
+                );
+              }
+              if (!zoning.zones.dispositif) {
+                throw new Error(
+                  `Cannot process partially-public decision ${row._id} because it has no dispositif: ${JSON.stringify(
+                    zoning.zones,
+                    zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
+                  )}.`,
+                );
+              }
+              let parts = [];
+              if (Array.isArray(zoning.zones.introduction)) {
+                for (let ii = 0; ii < zoning.zones.introduction.length; ii++) {
+                  parts.push(
+                    trimmedText
+                      .substring(zoning.zones.introduction[ii].start, zoning.zones.introduction[ii].end)
+                      .trim(),
+                  );
+                }
+              } else {
+                parts.push(
+                  trimmedText.substring(zoning.zones.introduction.start, zoning.zones.introduction.end).trim(),
+                );
+              }
+              if (Array.isArray(zoning.zones.dispositif)) {
+                for (let ii = 0; ii < zoning.zones.dispositif.length; ii++) {
+                  parts.push(
+                    trimmedText.substring(zoning.zones.dispositif[ii].start, zoning.zones.dispositif[ii].end).trim(),
+                  );
+                }
+              } else {
+                parts.push(trimmedText.substring(zoning.zones.dispositif.start, zoning.zones.dispositif.end).trim());
+              }
+              row.JDEC_HTML_SOURCE = parts.join('\n\n[...]\n\n');
+              // @TODO XXX
+            }
+            await Database.insertOne('sder.rawJurica', decision);
+            await Indexing.indexDecision('ca', decision, null, 'import in rawJurica');
+            await Indexing.indexAffaire('ca', decision);
+            const ShouldBeSentToJudifiltre = (
+              await Indexing.shouldBeSentToJudifiltre(
+                'ca',
+                decision.JDEC_CODNAC,
+                decision.JDEC_CODNACPART,
+                decision.JDEC_IND_DEC_PUB,
+              )
+            ).result;
             if (ShouldBeSentToJudifiltre === true) {
-              // @TODO
+              // @TODO XXX
             } else {
               let normalized = await Database.findOne('sder.decisions', {
                 sourceId: decision._id,
@@ -499,7 +589,7 @@ class Collector {
 
     decisions.collected = await Database.find(
       'sder.decisions',
-      { labelStatus: 'done', sourceName: 'jurinet' },
+      { labelStatus: 'done', sourceName: 'jurica' },
       { allowDiskUse: true },
     );
 
@@ -507,77 +597,7 @@ class Collector {
   }
 
   async reinjectUsingDB(decisions) {
-    for (let i = 0; i < decisions.length; i++) {
-      const decision = decisions[i];
-      try {
-        // 1. Get the original decision from Jurinet:
-        const sourceDecision = await Database.findOne(
-          'si.jurinet',
-          `SELECT *
-          FROM DOCUMENT
-          WHERE DOCUMENT.ID_DOCUMENT = :id`,
-          [decision.sourceId],
-        );
-        if (sourceDecision && sourceDecision.XML) {
-          // 2. Get the content of the original XML field to create the new XMLA field:
-          let xmla = sourceDecision.XML;
-          if (xmla.indexOf('<TEXTE_ARRET>') !== -1) {
-            // 3. Reinject the <TEXTE_ARRET> tag but with the reencoded pseudonymized content,
-            let pseudoText = decision.pseudoText.replace(/&/g, '&amp;').replace(/&amp;amp;/g, '&amp;');
-            pseudoText = pseudoText.replace(/</g, '&lt;');
-            pseudoText = pseudoText.replace(/>/g, '&gt;');
-            pseudoText = pseudoText.replace(/"/g, '&quot;');
-            pseudoText = pseudoText.replace(/'/g, '&apos;');
-            xmla = xmla.replace(
-              /<TEXTE_ARRET>[\s\S]*<\/TEXTE_ARRET>/gim,
-              '<TEXTE_ARRET>' + pseudoText + '</TEXTE_ARRET>',
-            );
-            xmla = Database.encodeOracleText(xmla);
-            // 4. Set the date:
-            const now = new Date();
-            // 5. Update query (which, contrary to the doc, requires xmla to be passed as a String):
-            await Database.writeQuery(
-              'si.jurinet',
-              `UPDATE DOCUMENT
-              SET XMLA=:xmla,
-              IND_ANO=:ok,
-              AUT_ANO=:label,
-              DT_ANO=:datea,
-              DT_MODIF=:dateb,
-              DT_MODIF_ANO=:datec,
-              DT_ENVOI_DILA=NULL
-              WHERE ID_DOCUMENT=:id`,
-              [xmla.toString('binary'), 2, 'LABEL', now, now, now, decision.sourceId],
-            );
-          } else {
-            throw new Error(
-              'reinjectUsingDB: <TEXTE_ARRET> tag not found: the document could be malformed or corrupted.',
-            );
-          }
-        } else {
-          throw new Error(`reinjectUsingDB: decision '${decision.sourceId}' not found or has no XML content.`);
-        }
-        const reinjected = await Database.findOne(
-          'si.jurinet',
-          `SELECT *
-          FROM DOCUMENT
-          WHERE DOCUMENT.ID_DOCUMENT = :id`,
-          [decision.sourceId],
-        );
-        reinjected._indexed = null;
-        reinjected.DT_ANO = new Date();
-        reinjected.DT_MODIF = new Date();
-        reinjected.DT_MODIF_ANO = new Date();
-        await Database.replaceOne('sder.rawJurinet', { _id: reinjected._id }, reinjected);
-        decision.labelStatus = 'exported';
-        decision.dateCreation = new Date().toISOString();
-        await Database.replaceOne('sder.decisions', { _id: decision._id }, decision);
-        await Indexing.updateDecision('sder', decision, null, `reinject`);
-      } catch (e) {
-        logger.error(`Jurinet reinjection error processing decision ${decision._id}`, e);
-        await Indexing.updateDecision('sder', decision, null, null, e);
-      }
-    }
+    // @TODO XXX
     return true;
   }
 

@@ -61,6 +61,18 @@ class Indexing {
     }
   }
 
+  async cleanContent(source, content) {
+    try {
+      return await axios.post(`${process.env.INDEX_URI}/cleanContent`, {
+        source: source,
+        content: content,
+      });
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
   async shouldBeRejected(source, nac, np, publicCheckbox) {
     try {
       return await axios.post(`${process.env.INDEX_URI}/shouldBeRejected`, {
