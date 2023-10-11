@@ -489,6 +489,15 @@ class Database {
     }
     return result;
   }
+
+  retrieveObjectId(document) {
+    Object.keys(document).forEach(function (key) {
+      if (/id/i.test(key) && typeof document[key] === 'string' && ObjectId.isValid(document[key])) {
+        document[key] = new ObjectId(document[key]);
+      }
+    });
+    return document;
+  }
 }
 
 exports.Database = new Database();
