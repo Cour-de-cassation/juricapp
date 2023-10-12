@@ -439,12 +439,13 @@ class Collector {
                   )}.`,
                 );
               }
-              // @TODO XXX HERE 1 BEGIN
               try {
                 zoning = (await Indexing.getZones(decision._id, 'ca', trimmedText)).result;
                 if (!zoning || zoning.detail) {
                   throw new Error(
-                    `Cannot process partially-public decision ${row._id} because its zoning failed: ${JSON.stringify(
+                    `Cannot process partially-public decision ${
+                      decision._id
+                    } because its zoning failed: ${JSON.stringify(
                       zoning,
                       zoning ? Object.getOwnPropertyNames(zoning) : null,
                     )}.`,
@@ -452,7 +453,7 @@ class Collector {
                 }
               } catch (e) {
                 throw new Error(
-                  `Cannot process partially-public decision ${row._id} because its zoning failed: ${JSON.stringify(
+                  `Cannot process partially-public decision ${decision._id} because its zoning failed: ${JSON.stringify(
                     e,
                     e ? Object.getOwnPropertyNames(e) : null,
                   )}.`,
@@ -460,7 +461,7 @@ class Collector {
               }
               if (!zoning.zones) {
                 throw new Error(
-                  `Cannot process partially-public decision ${row._id} because it has no zone: ${JSON.stringify(
+                  `Cannot process partially-public decision ${decision._id} because it has no zone: ${JSON.stringify(
                     zoning,
                     zoning ? Object.getOwnPropertyNames(zoning) : null,
                   )}.`,
@@ -468,7 +469,9 @@ class Collector {
               }
               if (!zoning.zones.introduction) {
                 throw new Error(
-                  `Cannot process partially-public decision ${row._id} because it has no introduction: ${JSON.stringify(
+                  `Cannot process partially-public decision ${
+                    decision._id
+                  } because it has no introduction: ${JSON.stringify(
                     zoning.zones,
                     zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
                   )}.`,
@@ -476,7 +479,9 @@ class Collector {
               }
               if (!zoning.zones.dispositif) {
                 throw new Error(
-                  `Cannot process partially-public decision ${row._id} because it has no dispositif: ${JSON.stringify(
+                  `Cannot process partially-public decision ${
+                    decision._id
+                  } because it has no dispositif: ${JSON.stringify(
                     zoning.zones,
                     zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
                   )}.`,
@@ -505,8 +510,7 @@ class Collector {
               } else {
                 parts.push(trimmedText.substring(zoning.zones.dispositif.start, zoning.zones.dispositif.end).trim());
               }
-              row.JDEC_HTML_SOURCE = parts.join('\n\n[...]\n\n');
-              // @TODO XXX HERE 1 END
+              decision.JDEC_HTML_SOURCE = parts.join('\n\n[...]\n\n');
             }
             await Database.insertOne('sder.rawJurica', decision);
             await Indexing.indexDecision('ca', decision, null, 'import in rawJurica');
