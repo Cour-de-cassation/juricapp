@@ -367,7 +367,7 @@ class Collector {
 
           let normalized = await Database.findOne('sder.decisions', { sourceId: decision._id, sourceName: 'jurica' });
           if (normalized === null) {
-            let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).NACResult;
+            let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).result;
             const insertResult = await Database.insertOne('sder.decisions', normDec);
             normDec._id = insertResult.insertedId;
             await Indexing.indexDecision('sder', normDec, null, 'import in decisions (sync)');
@@ -441,7 +441,7 @@ class Collector {
               }
               // @TODO XXX HERE 1 BEGIN
               try {
-                zoning = await Juritools.GetZones(row._id, 'ca', trimmedText);
+                zoning = (await Indexing.getZones(decision._id, 'ca', trimmedText)).result;
                 if (!zoning || zoning.detail) {
                   throw new Error(
                     `Cannot process partially-public decision ${row._id} because its zoning failed: ${JSON.stringify(
@@ -527,7 +527,7 @@ class Collector {
                 sourceName: 'jurica',
               });
               if (normalized === null) {
-                let normDec = await Indexing.normalizeDecision('ca', decision, null, false, true);
+                let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).result;
                 const insertResult = await Database.insertOne('sder.decisions', normDec);
                 normDec._id = insertResult.insertedId;
                 await Indexing.indexDecision('sder', normDec, null, 'import in decisions');

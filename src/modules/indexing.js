@@ -65,6 +65,15 @@ class Indexing {
     }
   }
 
+  async getZones(id, source, text) {
+    try {
+      return (await axios.post(`${process.env.INDEX_URI}/getZones`, { id: id, source: source, text: text })).data;
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
   async normalizeDecision(source, decision, previousDecision, ignorePreviousContent, cleanContent) {
     try {
       return retrieveObjectId(
