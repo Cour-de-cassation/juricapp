@@ -39,7 +39,7 @@ class Collector {
   }
 
   async getUpdatedDecisionsUsingDB(lastDate) {
-    // @TODO
+    // @TODO XXX HERE 4
     // (\w)\['(\w+)'\]
     // $1.$2
     const date = lastDate.toJSDate();
@@ -152,7 +152,7 @@ class Collector {
       const decision = decisions[i];
 
       if (updated === true) {
-        // @TODO
+        // @TODO XXX HERE 5
         const found = await Database.findOne('sder.rawJurica', { _id: decision.JDEC_ID });
         if (found === null) {
           filtered.collected.push({
@@ -439,7 +439,7 @@ class Collector {
                   )}.`,
                 );
               }
-              // @TODO XXX
+              // @TODO XXX HERE 1 BEGIN
               try {
                 zoning = await Juritools.GetZones(row._id, 'ca', trimmedText);
                 if (!zoning || zoning.detail) {
@@ -506,7 +506,7 @@ class Collector {
                 parts.push(trimmedText.substring(zoning.zones.dispositif.start, zoning.zones.dispositif.end).trim());
               }
               row.JDEC_HTML_SOURCE = parts.join('\n\n[...]\n\n');
-              // @TODO XXX
+              // @TODO XXX HERE 1 END
             }
             await Database.insertOne('sder.rawJurica', decision);
             await Indexing.indexDecision('ca', decision, null, 'import in rawJurica');
@@ -520,7 +520,7 @@ class Collector {
               )
             ).result;
             if (ShouldBeSentToJudifiltre === true) {
-              // @TODO XXX
+              // @TODO XXX HERE 2
             } else {
               let normalized = await Database.findOne('sder.decisions', {
                 sourceId: decision._id,
@@ -597,7 +597,7 @@ class Collector {
   }
 
   async reinjectUsingDB(decisions) {
-    // @TODO XXX
+    // @TODO XXX HERE 3
     return true;
   }
 
