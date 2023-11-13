@@ -39,7 +39,7 @@ class Collector {
   }
 
   async getUpdatedDecisionsUsingDB(lastDate) {
-    // @TODO
+    // @TODO XXX HERE 4
     // (\w)\['(\w+)'\]
     // $1.$2
     const date = lastDate.toJSDate();
@@ -152,7 +152,7 @@ class Collector {
       const decision = decisions[i];
 
       if (updated === true) {
-        // @TODO
+        // @TODO XXX HERE 5
         const found = await Database.findOne('sder.rawJurica', { _id: decision.JDEC_ID });
         if (found === null) {
           filtered.collected.push({
@@ -367,7 +367,7 @@ class Collector {
 
           let normalized = await Database.findOne('sder.decisions', { sourceId: decision._id, sourceName: 'jurica' });
           if (normalized === null) {
-            let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).NACResult;
+            let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).result;
             const insertResult = await Database.insertOne('sder.decisions', normDec);
             normDec._id = insertResult.insertedId;
             await Indexing.indexDecision('sder', normDec, null, 'import in decisions (sync)');
@@ -440,10 +440,12 @@ class Collector {
                 );
               }
               try {
-                zoning = await Indexing.getZones(decision._id, 'ca', trimmedText);
+                zoning = (await Indexing.getZones(decision._id, 'ca', trimmedText)).result;
                 if (!zoning || zoning.detail) {
                   throw new Error(
-                    `Cannot process partially-public decision ${decision._id} because its zoning failed: ${JSON.stringify(
+                    `Cannot process partially-public decision ${
+                      decision._id
+                    } because its zoning failed: ${JSON.stringify(
                       zoning,
                       zoning ? Object.getOwnPropertyNames(zoning) : null,
                     )}.`,
@@ -467,7 +469,9 @@ class Collector {
               }
               if (!zoning.zones.introduction) {
                 throw new Error(
-                  `Cannot process partially-public decision ${decision._id} because it has no introduction: ${JSON.stringify(
+                  `Cannot process partially-public decision ${
+                    decision._id
+                  } because it has no introduction: ${JSON.stringify(
                     zoning.zones,
                     zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
                   )}.`,
@@ -475,7 +479,9 @@ class Collector {
               }
               if (!zoning.zones.dispositif) {
                 throw new Error(
-                  `Cannot process partially-public decision ${decision._id} because it has no dispositif: ${JSON.stringify(
+                  `Cannot process partially-public decision ${
+                    decision._id
+                  } because it has no dispositif: ${JSON.stringify(
                     zoning.zones,
                     zoning.zones ? Object.getOwnPropertyNames(zoning.zones) : null,
                   )}.`,
@@ -518,14 +524,14 @@ class Collector {
               )
             ).result;
             if (ShouldBeSentToJudifiltre === true) {
-              // @TODO XXX
+              // @TODO XXX HERE 2
             } else {
               let normalized = await Database.findOne('sder.decisions', {
                 sourceId: decision._id,
                 sourceName: 'jurica',
               });
               if (normalized === null) {
-                let normDec = await Indexing.normalizeDecision('ca', decision, null, false, true);
+                let normDec = (await Indexing.normalizeDecision('ca', decision, null, false, true)).result;
                 const insertResult = await Database.insertOne('sder.decisions', normDec);
                 normDec._id = insertResult.insertedId;
                 await Indexing.indexDecision('sder', normDec, null, 'import in decisions');
@@ -595,7 +601,7 @@ class Collector {
   }
 
   async reinjectUsingDB(decisions) {
-    // @TODO XXX
+    // @TODO XXX HERE 3
     return true;
   }
 
