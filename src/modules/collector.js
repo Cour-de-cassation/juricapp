@@ -39,21 +39,20 @@ class Collector {
   }
 
   async getUpdatedDecisionsUsingDB(lastDate) {
-    // @TODO XXX HERE 4
     // (\w)\['(\w+)'\]
     // $1.$2
     const date = lastDate.toJSDate();
-    let strDate = date.getDate() < 10 ? '0' + date.getDate() : date.getDate();
-    strDate += '/' + (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1);
-    strDate += '/' + date.getFullYear();
+    let strDate = date.getFullYear();
+    strDate += '-' + (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1);
+    strDate += '-' + (date.getDate() < 10 ? '0' + date.getDate() : date.getDate());
 
     const decisions = await Database.find(
-      'si.jurinet',
+      'si.jurica',
       `SELECT *
-      FROM DOCUMENT
-      WHERE DOCUMENT.XML IS NOT NULL
-      AND DOCUMENT.DT_MODIF > TO_DATE('${strDate}', 'DD/MM/YYYY')
-      ORDER BY DOCUMENT.ID_DOCUMENT ASC`,
+      FROM JCA_DECISION
+      WHERE JCA_DECISION.JDEC_HTML_SOURCE IS NOT NULL
+      AND JCA_DECISION.JDEC_DATE_MAJ > '${strDate}'
+      ORDER BY JCA_DECISION.JDEC_ID ASC`,
     );
 
     for (let i = 0; i < decisions.length; i++) {
@@ -524,7 +523,45 @@ class Collector {
               )
             ).result;
             if (ShouldBeSentToJudifiltre === true) {
-              // @TODO XXX HERE 2
+              try {
+                const judifiltreResult = (
+                  await Indexing.sendToJudifiltre(
+                    decision._id,
+                    'jurica',
+                    decision.JDEC_DATE,
+                    decision.JDEC_CODE_JURIDICTION,
+                    decision.JDEC_CODNAC + (decision.JDEC_CODNACPART ? '-' + decision.JDEC_CODNACPART : ''),
+                    decision.JDEC_IND_DEC_PUB === null
+                      ? 'unspecified'
+                      : parseInt(`${decision.JDEC_IND_DEC_PUB}`, 10) === 1
+                      ? 'public'
+                      : 'notPublic',
+                  )
+                ).result;
+                await Indexing.updateDecision(
+                  'ca',
+                  decision,
+                  duplicateId,
+                  `submitted to Judifiltre: ${JSON.stringify(judifiltreResult)}`,
+                );
+                await Database.writeQuery(
+                  'si.jurica',
+                  `UPDATE JCA_DECISION
+                    SET IND_ANO = :pending
+                    WHERE JDEC_ID = :id`,
+                  [1, decision._id],
+                );
+              } catch (e) {
+                logger.error(`Jurica import to Judifiltre error processing decision ${decision._id}`, e);
+                await Indexing.updateDecision('ca', decision, duplicateId, null, e);
+                await Database.writeQuery(
+                  'si.jurica',
+                  `UPDATE JCA_DECISION
+                    SET IND_ANO = :erroneous
+                    WHERE JDEC_ID = :id`,
+                  [4, decision._id],
+                );
+              }
             } else {
               let normalized = await Database.findOne('sder.decisions', {
                 sourceId: decision._id,
@@ -601,7 +638,43 @@ class Collector {
   }
 
   async reinjectUsingDB(decisions) {
-    // @TODO XXX HERE 3
+    for (let i = 0; i < decisions.length; i++) {
+      const decision = decisions[i];
+      try {
+        // 1. Get the original decision from Jurica:
+        const sourceDecision = await Database.findOne(
+          'si.jurica',
+          `SELECT *
+          FROM JCA_DECISION
+          WHERE JCA_DECISION.JDEC_ID = :id`,
+          [decision.sourceId],
+        );
+        if (sourceDecision) {
+          const now = new Date();
+          let dateForIndexing = now.getFullYear() + '-';
+          dateForIndexing += (now.getMonth() < 9 ? '0' + (now.getMonth() + 1) : now.getMonth() + 1) + '-';
+          dateForIndexing += now.getDate() < 10 ? '0' + now.getDate() : now.getDate();
+          // 2. Update query:
+          await Database.writeQuery(
+            'si.jurica',
+            `UPDATE JCA_DECISION
+            SET IND_ANO=:ok,
+            AUT_ANO=:label,
+            DT_ANO=:datea,
+            JDEC_DATE_MAJ=:dateb,
+            DT_MODIF_ANO=:datec,
+            DT_ENVOI_ABONNES=NULL
+            WHERE JDEC_ID=:id`,
+            [2, 'LABEL', now, dateForIndexing, now, decision.sourceId],
+          );
+        } else {
+          throw new Error(`reinjectUsingDB: decision '${decision.sourceId}' not found.`);
+        }
+      } catch (e) {
+        logger.error(`Jurica reinjection error processing decision ${decision._id}`, e);
+        await Indexing.updateDecision('sder', decision, null, null, e);
+      }
+    }
     return true;
   }
 

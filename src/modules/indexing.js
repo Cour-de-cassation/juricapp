@@ -162,6 +162,26 @@ class Indexing {
       return false;
     }
   }
+
+  async sendToJudifiltre(sourceId, sourceDb, decisionDate, jurisdictionName, fieldCode, publicityClerkRequest) {
+    try {
+      return retrieveObjectId(
+        (
+          await axios.post(`${process.env.INDEX_URI}/sendToJudifiltre`, {
+            sourceId: sourceId,
+            sourceDb: sourceDb,
+            decisionDate: decisionDate,
+            jurisdictionName: jurisdictionName,
+            fieldCode: fieldCode,
+            publicityClerkRequest: publicityClerkRequest,
+          })
+        ).data,
+      );
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
 }
 
 exports.Indexing = new Indexing();
