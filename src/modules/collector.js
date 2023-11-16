@@ -151,7 +151,6 @@ class Collector {
       const decision = decisions[i];
 
       if (updated === true) {
-        // @TODO XXX HERE 5
         const found = await Database.findOne('sder.rawJurica', { _id: decision.JDEC_ID });
         if (found === null) {
           filtered.collected.push({
@@ -160,29 +159,37 @@ class Collector {
           });
         } else {
           const updatable = [
-            'XML',
-            'TYPE_ARRET',
-            'JURIDICTION',
-            'ID_CHAMBRE',
-            'NUM_DECISION',
-            'DT_DECISION',
-            'ID_SOLUTION',
-            'TEXTE_VISE',
-            'RAPROCHEMENT',
-            'SOURCE',
-            'DOCTRINE',
+            'JDEC_HTML_SOURCE',
+            'JDEC_DATE',
+            'JDEC_DATE_MAJ',
+            'JDEC_ID_JURIDICTION',
+            'JDEC_CODE_JURIDICTION',
+            'JDEC_JURIDICTION',
+            'JDEC_CODE_AUTORITE',
+            'JDEC_LIB_AUTORITE',
+            'JDEC_NUM_RG',
+            'JDEC_NUM_REGISTRE',
+            'JDEC_NOTICE_FORMAT',
+            'JDEC_LIBELLE',
+            'JDEC_COMPOSITION',
+            'JDEC_SOMMAIRE',
             'IND_ANO',
             'AUT_ANO',
-            'DT_ANO',
-            'DT_MODIF',
-            'DT_MODIF_ANO',
-            'DT_ENVOI_DILA',
-            '_titrage',
-            '_analyse',
-            '_partie',
-            '_decatt',
+            'JDEC_SELECTION',
+            'JDEC_MATIERE_DETERMINEE',
+            'JDEC_POURVOI_LOCAL',
+            'JDEC_POURVOI_CCASS',
+            'JDEC_COLL_DECS_ATTQ',
+            'JDEC_FIC_ARCHIVE',
+            'JDEC_NOTA_ADMIN',
+            'DT_ENVOI_ABONNES',
+            'JDEC_LIBNAC',
+            'JDEC_CODNACPART',
+            'JDEC_LIBNACPART',
             '_portalis',
-            '_bloc_occultation',
+            'JDEC_CODE',
+            'JDEC_CODNAC',
+            'JDEC_IND_DEC_PUB',
             'IND_PM',
             'IND_ADRESSE',
             'IND_DT_NAISSANCE',
@@ -194,19 +201,17 @@ class Collector {
             'IND_COORDONNEE_ELECTRONIQUE',
             'IND_PRENOM_PROFESSIONEL',
             'IND_NOM_PROFESSIONEL',
-            'IND_BULLETIN',
-            'IND_RAPPORT',
-            'IND_LETTRE',
-            'IND_COMMUNIQUE',
-            'ID_FORMATION',
-            'OCCULTATION_SUPPLEMENTAIRE',
-            '_natureAffaireCivil',
-            '_natureAffairePenal',
-            '_codeMatiereCivil',
-            '_nao_code',
+            'JDEC_OCC_COMP',
+            'JDEC_OCC_COMP_LIBRE',
+            'JDEC_COLL_PARTIES',
+            '_bloc_occultation',
           ];
-          const shouldNotBeUpdated = ['XML'];
+          const shouldNotBeUpdated = ['JDEC_HTML_SOURCE'];
           const triggerReprocess = [
+            'JDEC_CODNACPART',
+            'JDEC_CODE',
+            'JDEC_CODNAC',
+            'JDEC_IND_DEC_PUB',
             'IND_PM',
             'IND_ADRESSE',
             'IND_DT_NAISSANCE',
@@ -218,14 +223,11 @@ class Collector {
             'IND_COORDONNEE_ELECTRONIQUE',
             'IND_PRENOM_PROFESSIONEL',
             'IND_NOM_PROFESSIONEL',
-            'OCCULTATION_SUPPLEMENTAIRE',
+            'JDEC_OCC_COMP',
+            'JDEC_OCC_COMP_LIBRE',
             '_bloc_occultation',
-            '_natureAffaireCivil',
-            '_natureAffairePenal',
-            '_codeMatiereCivil',
-            '_nao_code',
           ];
-          const sensitive = ['XML', '_partie', 'OCCULTATION_SUPPLEMENTAIRE'];
+          const sensitive = ['JDEC_HTML_SOURCE', 'JDEC_COLL_PARTIES', 'JDEC_OCC_COMP_LIBRE'];
           let diff = null;
           let anomaly = false;
           let reprocess = false;

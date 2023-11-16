@@ -182,6 +182,40 @@ class Indexing {
       return false;
     }
   }
+
+  async getPublicFromJudifiltre() {
+    try {
+      return retrieveObjectId((await axios.post(`${process.env.INDEX_URI}/getPublicFromJudifiltre`)).data);
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
+  async getNotPublicFromJudifiltre() {
+    try {
+      return retrieveObjectId((await axios.post(`${process.env.INDEX_URI}/getNotPublicFromJudifiltre`)).data);
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
+
+  async deleteFromJudifiltre(sourceId, sourceDb) {
+    try {
+      return retrieveObjectId(
+        (
+          await axios.post(`${process.env.INDEX_URI}/deleteFromJudifiltre`, {
+            sourceId: sourceId,
+            sourceDb: sourceDb,
+          })
+        ).data,
+      );
+    } catch (e) {
+      logger.error(e);
+      return false;
+    }
+  }
 }
 
 exports.Indexing = new Indexing();
