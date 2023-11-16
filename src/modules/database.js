@@ -276,6 +276,10 @@ class Database {
   }
 
   async oracleWriteQuery(collection, args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `oracleWriteQuery denied on collection ${collection}`);
+      return false;
+    }
     logger.warn(args, `oracleWriteQuery performed on collection ${collection}`);
     const handler = this.getHandler(collection);
     let result = null;
@@ -287,6 +291,10 @@ class Database {
   }
 
   async writeQuery(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `writeQuery denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -371,6 +379,10 @@ class Database {
   }
 
   async insertOne(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `insertOne denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -393,6 +405,10 @@ class Database {
   }
 
   async replaceOne(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `replaceOne denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -415,6 +431,10 @@ class Database {
   }
 
   async deleteOne(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `deleteOne denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -434,6 +454,10 @@ class Database {
   }
 
   async deleteMany(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `deleteMany denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -453,6 +477,10 @@ class Database {
   }
 
   async dropIndexes(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `dropIndexes denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
@@ -472,6 +500,10 @@ class Database {
   }
 
   async createIndex(collection, ...args) {
+    if (parseInt(`${process.env.DB_READONLY}`, 10) === 1) {
+      logger.error(args, `createIndex denied on collection ${collection}`);
+      return false;
+    }
     await this.connect(collection);
     const handler = this.getHandler(collection);
     const shortCollectionName = collection.replace(/^\w+\./i, '');
