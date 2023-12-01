@@ -12,6 +12,7 @@ class Collector {
   constructor() {}
 
   async collectNewDecisionsUsingDB() {
+    // @TODO blocage par code décision ???
     let oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     oneMonthAgo.setHours(0, 0, 0, 0);
@@ -39,8 +40,6 @@ class Collector {
   }
 
   async getUpdatedDecisionsUsingDB(lastDate) {
-    // (\w)\['(\w+)'\]
-    // $1.$2
     const date = lastDate.toJSDate();
     let strDate = date.getFullYear();
     strDate += '-' + (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1);
