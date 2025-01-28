@@ -1,2 +1,2 @@
 # jurica
-Collect and store CA decisions.
+Collect CA decisions.
